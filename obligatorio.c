@@ -1,82 +1,264 @@
 #include <stdio.h>
-#include <stdlib.h>
 
-typedef struct Nodo
-{
-    int valor;
-    struct Nodo *izq;
-    struct Nodo *der;
-} Nodo;
+#define PUERTO_ENTRADA 20
+#define PUERTO_SALIDA 21
+#define PUERTO_LOG 22
+#define AREA_MEMORIA 2048
+#define NODO_VACIO 0x8000
 
-Nodo *crearNodo(int valor)
-{
-    Nodo *nuevo = (Nodo *)malloc(sizeof(Nodo));
-    nuevo->valor = valor;
-    nuevo->izq = NULL;
-    nuevo->der = NULL;
-    return nuevo;
-}
+typedef enum {
+    MODO_ESTATICO,
+    MODO_DINAMICO
+} ModoAlmacenamiento;
 
-Nodo *insertar(Nodo *raiz, int valor)
-{
-    if (raiz == NULL)
-    {
-        return crearNodo(valor);
+short in(unsigned short puerto);
+void out(unsigned short puerto, short valor);
+
+/* Metodo auxiliares */
+void insertarDinamico(unsigned short index, short num);
+void insertarEstatico(unsigned short index, short num);
+unsigned short sumaEstatico(unsigned short index);
+unsigned short sumaDinamico(unsigned short index);
+unsigned short alturaEstatico(unsigned short index);
+unsigned short alturaDinamico(unsigned short index);
+void imprimirEstatico(unsigned short index, int orden);
+void imprimirDinamico(unsigned short index, int orden);
+void inicializarMemoria();
+
+
+/* Funciones Principales */
+void insertar(short num);
+void cambiarModo(ModoAlmacenamiento modo);
+void imprimir(int orden);
+unsigned short suma();
+unsigned short altura(); 
+
+ModoAlmacenamiento modo_actual;
+short arbol[AREA_MEMORIA];
+unsigned short index_siguiente = 0;
+
+int main() {
+    short comando, parametro;
+
+    while (1) {
+        // Leer comando del PUERTO_ENTRADA
+        comando = in(PUERTO_ENTRADA);
+        out(PUERTO_LOG, 0);
+        out(PUERTO_LOG, comando);
+
+        switch (comando) {
+            case 1: // Cambiar Modo
+                parametro = in(PUERTO_ENTRADA);
+                out(PUERTO_LOG, parametro);
+                if (parametro == MODO_ESTATICO || parametro == MODO_DINAMICO) {
+                    cambiarModo(parametro);
+                    out(PUERTO_LOG, 0);
+                } else {
+                    out(PUERTO_LOG, 2); // Parámetro inválido
+                }
+                break;
+
+            case 2: // Agregar Nodo
+                parametro = in(PUERTO_ENTRADA);
+                out(PUERTO_LOG, parametro);
+                insertar(parametro);
+                out(PUERTO_LOG, 0);
+                break;
+
+            case 3: // Calcular Altura
+                out(PUERTO_SALIDA, altura());
+                out(PUERTO_LOG, 0);
+                break;
+
+            case 4: // Calcular Suma
+                out(PUERTO_SALIDA, suma());
+                out(PUERTO_LOG, 0);
+                break;
+
+            case 5: // Imprimir Árbol
+                parametro = in(PUERTO_ENTRADA);
+                out(PUERTO_LOG, parametro);
+                imprimir(parametro);
+                out(PUERTO_LOG, 0);
+                break;
+
+            case 6: // Imprimir Memoria
+                parametro = in(PUERTO_ENTRADA);
+                out(PUERTO_LOG, parametro);
+                // Aquí necesitarías una función para imprimir la memoria
+                // Lo he dejado sin implementar, pero deberías añadir dicha función basándote en el enunciado.
+                out(PUERTO_LOG, 0);
+                break;
+
+            case 255: // Detener programa
+                out(PUERTO_LOG, 0);
+                return 0;
+
+            default:
+                out(PUERTO_LOG, 1); // Comando inválido
+                break;
+        }
     }
-    if (valor < raiz->valor)
-    {
-        raiz->izq = insertar(raiz->izq, valor);
-    }
-    else if (valor > raiz->valor)
-    {
-        raiz->der = insertar(raiz->der, valor);
-    }
-    return raiz;
-}
-
-int altura(Nodo *raiz)
-{
-    if (raiz == NULL)
-    {
-        return 0;
-    }
-    int izq = altura(raiz->izq);
-    int der = altura(raiz->der);
-    return (izq > der ? izq : der) + 1;
-}
-
-int suma(Nodo *raiz)
-{
-    if (raiz == NULL)
-    {
-        return 0;
-    }
-    return raiz->valor + suma(raiz->izq) + suma(raiz->der);
-}
-
-void imprimir(Nodo *raiz)
-{
-    if (raiz != NULL)
-    {
-        imprimir(raiz->izq);
-        printf("%d ", raiz->valor);
-        imprimir(raiz->der);
-    }
-}
-
-int main()
-{
-    Nodo *raiz = NULL;
-    raiz = insertar(raiz, 3);
-    raiz = insertar(raiz, 2);
-    raiz = insertar(raiz, 5);
-    raiz = insertar(raiz, 4);
-
-    printf("Altura del árbol: %d\n", altura(raiz));
-    printf("Suma de los valores del árbol: %d\n", suma(raiz));
-    printf("Valores del árbol: ");
-    imprimir(raiz);
-    printf("\n");
 
     return 0;
+}
+
+void inicializarMemoria() {
+    for (unsigned short i = 0; i < AREA_MEMORIA; i++) {
+        arbol[i] = NODO_VACIO;
+    }
+    index_siguiente = 0;
+}
+
+void cambiarModo(ModoAlmacenamiento modo) {
+    modo_actual = modo;
+    inicializarMemoria();
+}
+
+short in(unsigned short puerto) {
+    short valor;
+    scanf("%d", &valor);
+    return valor;
+}
+
+void out(unsigned short puerto, short valor) {
+    printf("%d%d", puerto, valor);
+}
+
+void insertarEstatico(unsigned short index, short num) {
+    if (index >= AREA_MEMORIA) return; // Fuera de rango
+
+    if (arbol[index] == NODO_VACIO) {
+        arbol[index] = num;
+        return;
+    }
+
+    if (num < arbol[index]) {
+        insertarEstatico(2 * index + 1, num); // Hijo izquierdo
+    } else if (num > arbol[index]) {
+        insertarEstatico(2 * index + 2, num); // Hijo derecho
+    }
+}
+
+void insertarDinamico(unsigned short index, short num) {
+ if (3 * index_siguiente >= AREA_MEMORIA) return; // Out of bounds
+
+    if (arbol[3 * index] == NODO_VACIO) {
+        arbol[3 * index] = num;
+        index_siguiente++;
+        return;
+    }
+
+    if (num < arbol[3 * index]) {
+        if (arbol[3 * index + 1] == NODO_VACIO) {
+            arbol[3 * index + 1] = index_siguiente;
+            insert_dynamic_recursive(index_siguiente, num);
+        } else {
+            insert_dynamic_recursive(arbol[3 * index + 1], num); // Hijo izquierdo
+        }
+    } else if (num > arbol[3 * index]) {
+        if (arbol[3 * index + 2] == NODO_VACIO) {
+            arbol[3 * index + 2] = index_siguiente;
+            insert_dynamic_recursive(index_siguiente, num);
+        } else {
+            insert_dynamic_recursive(arbol[3 * index + 2], num); // Hijo derecho
+        }
+    }
+    // Si el número ya existe, simplemente retornamos y no hacemos nada
+}
+
+unsigned short alturaEstatico(unsigned short index) {
+    if (index >= AREA_MEMORIA || arbol[index] == NODO_VACIO) return 0;
+
+    unsigned short izq = alturaEstatico(2 * index + 1);
+    unsigned short der = alturaEstatico(2 * index + 2);
+
+    return 1 + (izq > der ? izq : der);
+}
+
+unsigned short alturaDinamico(unsigned short index) {
+    if (3 * index >= AREA_MEMORIA || arbol[3 * index] == NODO_VACIO) return 0;
+
+    unsigned short izq = arbol[3 * index + 1] != NODO_VACIO ? alturaDinamico(arbol[3 * index + 1]) : 0;
+    unsigned short der = arbol[3 * index + 2] != NODO_VACIO ? alturaDinamico(arbol[3 * index + 2]) : 0;
+
+    return 1 + (izq > der ? izq : der);
+}
+
+unsigned short sumaEstatico(unsigned short index) {
+    if (index >= AREA_MEMORIA || arbol[index] == NODO_VACIO) return 0;
+
+    return arbol[index] + sumaEstatico(2 * index + 1) + sumaEstatico(2 * index + 2);
+}
+
+unsigned short sumaDinamico(unsigned short index) {
+    if (3 * index >= AREA_MEMORIA || arbol[3 * index] == NODO_VACIO) return 0;
+
+    unsigned short sumIzq = arbol[3 * index + 1] != NODO_VACIO ? sumaDinamico(arbol[3 * index + 1]) : 0;
+    unsigned short sumDer = arbol[3 * index + 2] != NODO_VACIO ? sumaDinamico(arbol[3 * index + 2]) : 0;
+
+    return arbol[3 * index] + sumIzq + sumDer;
+}
+
+void imprimirEstatico(unsigned short index, int orden) {
+    if (index >= AREA_MEMORIA || arbol[index] == NODO_VACIO) return;
+
+    if (orden == 0) {
+        imprimirEstatico(2 * index + 1, orden);
+        printf("%d ", arbol[index]);
+        imprimirEstatico(2 * index + 2, orden);
+    } else {
+        imprimirEstatico(2 * index + 2, orden);
+        printf("%d ", arbol[index]);
+        imprimirEstatico(2 * index + 1, orden);
+    }
+}
+
+void imprimirDinamico(unsigned short index, int orden) {
+    if (3 * index >= AREA_MEMORIA || arbol[3 * index] == NODO_VACIO) return;
+
+    if (orden == 0) {
+        if (arbol[3 * index + 1] != NODO_VACIO) imprimirDinamico(arbol[3 * index + 1], orden);
+        printf("%d ", arbol[3 * index]);
+        if (arbol[3 * index + 2] != NODO_VACIO) imprimirDinamico(arbol[3 * index + 2], orden);
+    } else {
+        if (arbol[3 * index + 2] != NODO_VACIO) imprimirDinamico(arbol[3 * index + 2], orden);
+        printf("%d ", arbol[3 * index]);
+        if (arbol[3 * index + 1] != NODO_VACIO) imprimirDinamico(arbol[3 * index + 1], orden);
+    }
+}
+
+/* Funciones Principales */
+
+void insertar(short num) {
+    if (modo_actual == MODO_ESTATICO) {
+        insertarEstatico(0, num);
+    } else {
+        insertarDinamico(0, num);
+    }
+}
+
+unsigned short altura() {
+    if (modo_actual == MODO_ESTATICO) {
+        return alturaEstatico(0);
+    } else {
+        return alturaDinamico(0);
+    }
+}
+
+unsigned short suma() {
+    if (modo_actual == MODO_ESTATICO) {
+        return sumaEstatico(0);
+    } else {
+        return sumaDinamico(0);
+    }
+}
+
+void imprimir(int orden) {
+    if (modo_actual == MODO_ESTATICO) {
+        imprimirEstatico(0, orden);
+    } else {
+        imprimirDinamico(0, orden);
+    }
+    printf("\n");
 }
