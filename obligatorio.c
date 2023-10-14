@@ -126,7 +126,10 @@ void out(unsigned short puerto, short valor) {
 }
 
 void insertarEstatico(unsigned short index, short num) {
-    if (index >= AREA_MEMORIA) return; // Fuera de rango
+    if (index >= AREA_MEMORIA){
+        out(PUERTO_LOG, 4);
+        return; // Fuera de rango
+    }
 
     if (arbol[index] == NODO_VACIO) {
         arbol[index] = num;
@@ -141,7 +144,10 @@ void insertarEstatico(unsigned short index, short num) {
 }
 
 void insertarDinamico(unsigned short index, short num) {
- if (3 * index_siguiente >= AREA_MEMORIA) return; // Out of bounds
+    if (3 * index_siguiente >= AREA_MEMORIA){
+        out(PUERTO_LOG, 4);
+        return; // Fuera de rango
+    }
 
     if (arbol[3 * index] == NODO_VACIO) {
         arbol[3 * index] = num;
