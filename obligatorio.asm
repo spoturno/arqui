@@ -12,10 +12,12 @@ MODO_ESTATICO DW 0
 MODO_DINAMICO DW 1
 
 
-COD_CERO EQU 0 ; si la operación se pudo realizar con éxito 
-COD_UNO EQU 1 ; si no se reconoce el comando (comando inválido)
-COD_DOS EQU 2 ; si el valor de algún parámetro recibido es inválido
-COD_CUATRO EQU 4 ; si al agregar un nodo se intenta escribir fuera del área de memoria
+LECTURA_COMANDO EQU 64
+EXITO EQU 0 ; si la operación se pudo realizar con éxito 
+COMANDO_INVALIDO EQU 1 ; si no se reconoce el comando (comando inválido)
+PARAMETRO_INVALIDO EQU 2 ; si el valor de algún parámetro recibido es inválido
+FUERA_DE_RANGO EQU 4 ; si al agregar un nodo se intenta escribir fuera del área de memoria
+NODO_YA_EXISTE EQU 8 ; si el nodo a agregar ya se encuentra en el árbol.
 
 modo_actual DW 0
 arbol DW 0
@@ -32,8 +34,8 @@ loop_start:
     MOV [comando], AX
 
    	MOV DX, PUERTO_LOG
-	MOV AX, COD_CERO
-	OUT DX, AX ; imprime el codigo cero en puerto log
+	MOV AX, LECTURA_COMANDO
+	OUT DX, AX ; imprime el codigo 64 en puerto log
 
 	MOV AX, [comando]
 	OUT DX, AX ; imprime el comando en puerto log
@@ -62,7 +64,7 @@ cambiarModoCase:
     JE setModoDinamico
 
     ; Si no es ninguno de los modos válidos, envía error
-	MOV AX, [COD_DOS]
+	MOV AX, PARAMETRO_INVALIDO
     OUT DX, AX
     JMP endCase
 
@@ -199,7 +201,7 @@ insertarAqui:
 fueraDeRango:
     ; Manejo de error: intento de escribir fuera de AREA_MEMORIA
     MOV DX, PUERTO_LOG
-    MOV AX, COD_CUATRO
+    MOV AX, FUERA_DE_RANGO
     OUT DX, AX
     POP AX
     POP DX
