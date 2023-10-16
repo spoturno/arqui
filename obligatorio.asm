@@ -80,15 +80,18 @@ setModoDinamico:
 
 
 insertarNodoCase:
-    IN CX, PUERTO_ENTRADA ; leo parametro - valor de nodo a insertar
+    IN AX, PUERTO_ENTRADA ; leo parametro - valor de nodo a insertar
+	MOV CX, AX ; utilizo CX para guardar parametro
     MOV DX, PUERTO_LOG
-    OUT DX, CX ; imprime el parametro en puerto log
+    OUT DX, AX ; imprime el parametro en puerto log
 
     ; Comprobamos el modo_actual y llamamos al procedimiento adecuado
-    CMP [modo_actual], MODO_ESTATICO
+	MOV DX, [modo_actual]	
+
+    CMP DX, [MODO_ESTATICO]
     JE insertarNodoEstaticoCase
 
-    CMP [modo_actual], MODO_DINAMICO
+    CMP DX, [MODO_DINAMICO]
     JE insertarNodoDinamicoCase
 
     JMP endCase
@@ -206,8 +209,14 @@ fueraDeRango:
 
 insertarEstatico ENDP
 
+
+insertarDinamico PROC
+	RET
+insertarDinamico ENDP
+
+
 .ports 	; Definición de puertos
-20: 1, 0, 255
+20: 1, 0, 2, 7
 
 ; 200: 1,2,3  ; Ejemplo puerto simple
 ; 201:(100h,10),(200h,3),(?,4)  ; Ejemplo puerto PDDV
