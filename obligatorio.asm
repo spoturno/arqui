@@ -107,14 +107,14 @@ insertarNodoDinamicoCase:
 	JMP endCase
 
 defaultCase:
-	;MOV DX, COD_UNO
-    ;OUT [PUERTO_LOG], COD_UNO
+	MOV AX, COMANDO_INVALIDO
+	MOV DX, PUERTO_LOG
+	OUT DX, AX
+	JMP endCase
 
 endCase:
     JMP loop_start ; Terminar el bucle y volver a empezar
 
-stopCase:
-	RET
 
 ; ... otras rutinas ...
 
@@ -216,9 +216,11 @@ insertarDinamico PROC
 	RET
 insertarDinamico ENDP
 
+stopCase:
+
 
 .ports 	; Definición de puertos
-20: 1, 0, 2, 7
+20: 3, 255
 
 ; 200: 1,2,3  ; Ejemplo puerto simple
 ; 201:(100h,10),(200h,3),(?,4)  ; Ejemplo puerto PDDV
