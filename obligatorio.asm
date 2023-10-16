@@ -115,6 +115,10 @@ defaultCase:
 endCase:
     JMP loop_start ; Terminar el bucle y volver a empezar
 
+stopCase:
+	HLT
+
+
 
 ; ... otras rutinas ...
 
@@ -216,7 +220,6 @@ insertarDinamico PROC
 	RET
 insertarDinamico ENDP
 
-stopCase:
 
 
 .ports 	; Definición de puertos
