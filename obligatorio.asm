@@ -43,6 +43,9 @@ loop_start:
     CMP AX, 1
     JE cambiarModoCase
 
+	CMP AX, 2
+	JE insertarNodoCase
+
 	CMP AX, 255
 	JE stopCase
    
@@ -75,6 +78,29 @@ setModoDinamico:
     CALL inicializarMemoria
     JMP endCase
 
+
+insertarNodoCase:
+    IN CX, PUERTO_ENTRADA ; leo parametro - valor de nodo a insertar
+    MOV DX, PUERTO_LOG
+    OUT DX, CX ; imprime el parametro en puerto log
+
+    ; Comprobamos el modo_actual y llamamos al procedimiento adecuado
+    CMP [modo_actual], MODO_ESTATICO
+    JE insertarNodoEstaticoCase
+
+    CMP [modo_actual], MODO_DINAMICO
+    JE insertarNodoDinamicoCase
+
+    JMP endCase
+
+insertarNodoEstaticoCase:
+	CALL insertarEstatico
+	JMP endCase
+
+insertarNodoDinamicoCase:
+	CALL insertarDinamico
+	JMP endCase
+
 defaultCase:
 	;MOV DX, COD_UNO
     ;OUT [PUERTO_LOG], COD_UNO
@@ -83,9 +109,9 @@ endCase:
     JMP loop_start ; Terminar el bucle y volver a empezar
 
 stopCase:
+	RET
 
-
-; ... otras funciones ...
+; ... otras rutinas ...
 
 inicializarMemoria PROC
 	PUSH BX	; preservo valores anteriores de registros
@@ -108,6 +134,77 @@ endLoop:
 	RET
 inicializarMemoria ENDP
 
+insertarEstatico PROC ; CX es el valor del numero nuevo a insertar
+    PUSH BX
+    PUSH SI
+    PUSH DX
+    PUSH AX
+
+    XOR SI, SI ; SI será nuestro índice actual en el árbol
+
+insertarEstaticoLoop:
+    ; Comprobación de si el índice está fuera del rango de AREA_MEMORIA
+    CMP SI, [AREA_MEMORIA]
+    JAE fueraDeRango
+
+    ; Cargamos el valor actual en el árbol en DX
+    MOV DX, ES:[SI]
+
+    ; Si el nodo actual está vacío, insertamos el valor y salimos
+    CMP DX, [NODO_VACIO]
+    JE insertarAqui
+
+    ; Si el valor es menor que el actual, vamos al hijo izquierdo
+    CMP CX, DX
+    JB hijoIzquierdo
+
+    ; Si el valor es mayor que el actual, vamos al hijo derecho
+    JA hijoDerecho
+
+    ; Si no es menor ni mayor, es igual. En ese caso, el valor ya está en el árbol. Salimos
+    POP AX
+    POP DX
+    POP SI
+    POP BX
+    RET
+
+hijoIzquierdo:
+    ; Calculamos la dirección para el hijo izquierdo: 2*SI + 2
+    MOV AX, 2
+    MUL SI
+    ADD AX, 2 ; Sumamos 2 pues es nodo izquierdo
+    MOV SI, AX
+    JMP insertarEstaticoLoop
+
+hijoDerecho:
+    ; Calculamos la dirección para el hijo derecho: 2*SI + 4
+    MOV AX, 2
+    MUL SI
+    ADD AX, 4 ; Sumamos 2 pues es nodo derecho
+    MOV SI, AX
+    JMP insertarEstaticoLoop
+
+insertarAqui:
+    ; Insertamos el valor en el árbol
+    MOV ES:[SI], CX
+    POP AX
+    POP DX
+    POP SI
+    POP BX
+    RET
+
+fueraDeRango:
+    ; Manejo de error: intento de escribir fuera de AREA_MEMORIA
+    MOV DX, PUERTO_LOG
+    MOV AX, COD_CUATRO
+    OUT DX, AX
+    POP AX
+    POP DX
+    POP SI
+    POP BX
+    RET
+
+insertarEstatico ENDP
 
 .ports 	; Definición de puertos
 20: 1, 0, 255
