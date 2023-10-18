@@ -5,7 +5,8 @@ PUERTO_ENTRADA EQU 20
 PUERTO_SALIDA EQU 21
 PUERTO_LOG EQU 22
 
-AREA_MEMORIA DW 50
+OFFSET_MAXIMO DW 32 ; OFFSET_MAXIMO = (AREA_MEMORIA - 1) * 2
+AREA_MEMORIA DW 17
 NODO_VACIO DW 0x8000
 
 MODO_ESTATICO DW 0
@@ -157,21 +158,21 @@ insertarEstatico PROC ; CX es el valor del numero nuevo a insertar
 
 insertarEstaticoLoop:
     CMP BX, [AREA_MEMORIA] ; Comprobación de si el índice está fuera del rango de AREA_MEMORIA
-    JAE fueraDeRango
+    JAE fueraDeRangoEstatico
 
     
     MOV DX, ES:[SI] ; Cargamos el valor actual en el árbol en DX
 
     
     CMP DX, [NODO_VACIO] ; Si el nodo actual está vacío, insertamos el valor y salimos
-    JE insertarAqui
+    JE insertarAquiEstatico
 
     
     CMP CX, DX ; Si el valor es menor que el actual, vamos al hijo izquierdo
-    JB hijoIzquierdo
+    JB hijoIzquierdoEstatico
 
     
-    JA hijoDerecho ; Si el valor es mayor que el actual, vamos al hijo derecho
+    JA hijoDerechoEstatico ; Si el valor es mayor que el actual, vamos al hijo derecho
 
     ; Si no es menor ni mayor, es igual. En ese caso, el valor ya está en el árbol. Salimos
 	MOV DX, PUERTO_LOG
@@ -184,7 +185,7 @@ insertarEstaticoLoop:
     POP BX
     RET
 
-hijoIzquierdo:
+hijoIzquierdoEstatico:
     ; Calculamos la dirección para el hijo izquierdo: 2*SI + 2
     MOV AX, 2
     MUL SI ; AX = SI*2
@@ -197,7 +198,7 @@ hijoIzquierdo:
 	MOV BX, AX ; index real en array BX = BX*2 + 1 
 	JMP insertarEstaticoLoop
 
-hijoDerecho:
+hijoDerechoEstatico:
    ; Calculamos la dirección para el hijo izquierdo: 2*SI + 4
     MOV AX, 2
     MUL SI ; AX = SI*2
@@ -210,7 +211,7 @@ hijoDerecho:
 	MOV BX, AX ; index real en array BX = BX*2 + 2
     JMP insertarEstaticoLoop
 
-insertarAqui:
+insertarAquiEstatico:
     ; Insertamos el valor en el árbol
     MOV ES:[SI], CX
 
@@ -224,7 +225,7 @@ insertarAqui:
     POP BX
     RET
 
-fueraDeRango:
+fueraDeRangoEstatico:
     ; Manejo de error: intento de escribir fuera de AREA_MEMORIA
     MOV DX, PUERTO_LOG
     MOV AX, FUERA_DE_RANGO
@@ -237,16 +238,125 @@ fueraDeRango:
     RET
 
 insertarEstatico ENDP
-
+ 
 
 insertarDinamico PROC
-	RET
+	PUSH BX
+    PUSH SI
+    PUSH DX
+    PUSH AX
+
+	XOR AX, AX
+    XOR SI, SI ; SI será nuestro index actual en el árbol
+	XOR BX, BX ; BX sera nuestro comparador con OFFSET_MAXIMO
+
+insertarDinamicoLoop:
+	; Comprobacion de si el index_siguiente esta fuera de rango de OFFSET_MAXIMO
+	MOV BX, [index_siguiente]
+	MOV AX, BX
+	MOV DX, 6
+	MUL DX ; Multiplico AX por DX = 6
+	MOV BX, AX ; BX = 6 * index_siguiente
+	CMP BX, [OFFSET_MAXIMO] 
+    JAE fueraDeRangoDinamico
+
+    ; Cargo en DX el valor del padre ES[6*SI]
+	MOV AX, SI
+	MOV BX, 6 ; Guardo en BX el valor 6 para multiplicar
+	MUL BX ; Multiplico AX por 6
+	MOV SI, AX ; Asigno SI = 6*SI
+	
+    MOV DX, ES:[SI] ; Cargamos el valor actual en el árbol en DX
+
+    
+    CMP DX, [NODO_VACIO] ; Si el nodo actual está vacío, insertamos el valor y salimos
+    JE insertarAquiDinamico
+
+    
+    CMP CX, DX ; Si el valor es menor que el actual, vamos al hijo izquierdo
+    JB hijoIzquierdoDinamico
+
+    
+    JA hijoDerechoDinamico ; Si el valor es mayor que el actual, vamos al hijo derecho
+
+    ; Si no es menor ni mayor, es igual. En ese caso, el valor ya está en el árbol. Salimos
+	MOV DX, PUERTO_LOG
+    MOV AX, NODO_YA_EXISTE
+    OUT DX, AX
+
+    POP AX
+    POP DX
+    POP SI
+    POP BX
+    RET
+
+hijoIzquierdoDinamico:
+	ADD SI, 2 ; actualmente SI es para acceder arbol[6*index+2]
+	MOV DX, ES:[SI] ; guardo el valor del indice del izquierdo del padre
+	
+	CMP DX, [NODO_VACIO]
+	JE hijoIzquierdoVacio
+
+	MOV SI, ES:[SI] ; index = arbol[6*index + 2] para llamada recursiva
+	JMP insertarDinamicoLoop
+
+hijoIzquierdoVacio:
+	MOV AX, [index_siguiente]
+	MOV ES:[SI], AX
+	MOV SI, AX ; index = index_siguiente para llamada recursiva
+	JMP insertarDinamicoLoop
+
+	
+hijoDerechoDinamico:
+	ADD SI, 4 ; actualmente SI es para acceder arbol[6*index + 4]
+	MOV DX, ES:[SI]
+
+	CMP DX, [NODO_VACIO]
+	JE hijoDerechoVacio
+
+	MOV SI, ES:[SI] ; index = arbol[6*index + 4] para llamada recursiva
+	JMP insertarDinamicoLoop
+
+hijoDerechoVacio:
+	MOV AX, [index_siguiente]
+	MOV ES:[SI], AX
+	MOV SI, AX ; index = index_siguiente para llamada recursiva
+	JMP insertarDinamicoLoop
+
+insertarAquiDinamico:
+	MOV ES:[SI], CX ; Cargo el valor del nuevo nodo en ES
+	MOV AX, [index_siguiente] ; Obtengo el valor de index_siguiente actual
+	INC AX ; index_siguiente++
+	MOV [index_siguiente], AX ; guardo el nuevo valor de index_siguiente
+
+	MOV DX, PUERTO_LOG
+	MOV AX, EXITO
+	OUT DX, AX ; imprime el codigo EXITO en puerto log	
+
+    POP AX
+    POP DX
+    POP SI
+    POP BX
+    RET
+
+fueraDeRangoDinamico:
+	; Manejo de error: intento de escribir fuera de OFFSET_MAXIMO
+    MOV DX, PUERTO_LOG
+    MOV AX, FUERA_DE_RANGO
+    OUT DX, AX
+
+    POP AX
+    POP DX
+    POP SI
+    POP BX
+    RET
+
 insertarDinamico ENDP
 
 
 
 .ports 	; Definición de puertos
-20: 1, 0, 2, 13, 2, 15, 2, 17, 2, 21, 255
+20: 1, 1, 2, 7, 2, 10, 2, 5, 255
 
 ; 200: 1,2,3  ; Ejemplo puerto simple
 ; 201:(100h,10),(200h,3),(?,4)  ; Ejemplo puerto PDDV

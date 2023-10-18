@@ -136,76 +136,59 @@ void out(unsigned short puerto, short valor)
     printf("%d%d", puerto, valor);
 }
 
-void insertarEstatico(unsigned short index, short num)
-{
-    if (index >= AREA_MEMORIA)
-    {
+void insertarEstatico(unsigned short index, short num) {
+    if (index >= AREA_MEMORIA) {
         out(PUERTO_LOG, 4);
         return; // Fuera de rango
     }
 
-    if (arbol[index] == NODO_VACIO)
-    {
+    if (arbol[index] == NODO_VACIO) {
         arbol[index] = num;
         return;
     }
 
-    if (num < arbol[index])
-    {
+    if (num < arbol[index]) {
         insertarEstatico(2 * index + 1, num); // Hijo izquierdo
-    }
-    else if (num > arbol[index])
-    {
+    } else if (num > arbol[index]) {
         insertarEstatico(2 * index + 2, num); // Hijo derecho
     }
 }
 
-void insertarDinamico(unsigned short index, short num)
-{
-    if (3 * index_siguiente >= AREA_MEMORIA)
-    {
+void insertarDinamico(unsigned short index, short num) {
+    if (3 * index_siguiente >= AREA_MEMORIA) {
         out(PUERTO_LOG, 4);
         return; // Fuera de rango
     }
 
-    if (arbol[3 * index] == NODO_VACIO)
-    {
+    if (arbol[3 * index] == NODO_VACIO) {
         arbol[3 * index] = num;
         index_siguiente++;
         return;
     }
 
-    if (num < arbol[3 * index])
-    {
-        if (arbol[3 * index + 1] == NODO_VACIO)
-        {
+    if (num < arbol[3 * index]) {
+        if (arbol[3 * index + 1] == NODO_VACIO) {
             arbol[3 * index + 1] = index_siguiente;
-            insert_dynamic_recursive(index_siguiente, num);
+            insertarDinamico(index_siguiente, num);
+        } else {
+            insertarDinamico(arbol[3 * index + 1], num); // Hijo izquierdo
         }
-        else
-        {
-            insert_dynamic_recursive(arbol[3 * index + 1], num); // Hijo izquierdo
-        }
-    }
-    else if (num > arbol[3 * index])
-    {
-        if (arbol[3 * index + 2] == NODO_VACIO)
-        {
+
+    } else if (num > arbol[3 * index]) {
+        if (arbol[3 * index + 2] == NODO_VACIO) {
             arbol[3 * index + 2] = index_siguiente;
-            insert_dynamic_recursive(index_siguiente, num);
-        }
-        else
-        {
-            insert_dynamic_recursive(arbol[3 * index + 2], num); // Hijo derecho
+            insertarDinamico(index_siguiente, num);
+        } else {
+            insertarDinamico(arbol[3 * index + 2], num); // Hijo derecho
         }
     }
     // Si el número ya existe, simplemente retornamos y no hacemos nada
 }
 
-unsigned short alturaEstatico(unsigned short index)
-{
-    if (index >= AREA_MEMORIA || arbol[index] == NODO_VACIO)
+unsigned short alturaEstatico(unsigned short index) {
+    if (index >= AREA_MEMORIA || arbol[index] == NODO_VACIO) {
         return 0;
+    }
 
     unsigned short izq = alturaEstatico(2 * index + 1);
     unsigned short der = alturaEstatico(2 * index + 2);
