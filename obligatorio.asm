@@ -1,11 +1,11 @@
-.data  ; Segmento de datos
+	.data  ; Segmento de datos
 #define ES 0x0240 ; cambio inicio de ES a siguiente pagina de direcciones
 
 PUERTO_ENTRADA EQU 20
 PUERTO_SALIDA EQU 21
 PUERTO_LOG EQU 22
 
-AREA_MEMORIA DW 3
+AREA_MEMORIA DW 6
 NODO_VACIO DW 0x8000
 
 MODO_ESTATICO DW 0
@@ -20,7 +20,6 @@ FUERA_DE_RANGO EQU 4 ; si al agregar un nodo se intenta escribir fuera del área
 NODO_YA_EXISTE EQU 8 ; si el nodo a agregar ya se encuentra en el árbol.
 
 modo_actual DW 0
-arbol DW 0
 index_siguiente DW 0
 comando DW ?
 
@@ -137,6 +136,9 @@ initLoop:
 	INC CX
 	JMP initLoop
 endLoop:
+	MOV DX, PUERTO_LOG
+	MOV AX, EXITO
+	OUT DX, AX ; imprime el codigo EXITO en puerto log	
 	POP DX
 	POP CX
 	POP BX
@@ -196,6 +198,11 @@ hijoDerecho:
 insertarAqui:
     ; Insertamos el valor en el árbol
     MOV ES:[SI], CX
+
+	MOV DX, PUERTO_LOG
+	MOV AX, EXITO
+	OUT DX, AX ; imprime el codigo EXITO en puerto log	
+
     POP AX
     POP DX
     POP SI
@@ -223,7 +230,7 @@ insertarDinamico ENDP
 
 
 .ports 	; Definición de puertos
-20: 3, 255
+20: 1, 0, 2, 13, 2, 7, 2, 15, 255
 
 ; 200: 1,2,3  ; Ejemplo puerto simple
 ; 201:(100h,10),(200h,3),(?,4)  ; Ejemplo puerto PDDV
