@@ -5,7 +5,7 @@ PUERTO_ENTRADA EQU 20
 PUERTO_SALIDA EQU 21
 PUERTO_LOG EQU 22
 
-AREA_MEMORIA DW 6
+AREA_MEMORIA DW 50
 NODO_VACIO DW 0x8000
 
 MODO_ESTATICO DW 0
@@ -151,28 +151,33 @@ insertarEstatico PROC ; CX es el valor del numero nuevo a insertar
     PUSH DX
     PUSH AX
 
+	XOR AX, AX
     XOR SI, SI ; SI será nuestro índice actual en el árbol
+	XOR BX, BX ; BX sera nuestro comparador con AREA_MEMORIA
 
 insertarEstaticoLoop:
-    ; Comprobación de si el índice está fuera del rango de AREA_MEMORIA
-    CMP SI, [AREA_MEMORIA]
+    CMP BX, [AREA_MEMORIA] ; Comprobación de si el índice está fuera del rango de AREA_MEMORIA
     JAE fueraDeRango
 
-    ; Cargamos el valor actual en el árbol en DX
-    MOV DX, ES:[SI]
+    
+    MOV DX, ES:[SI] ; Cargamos el valor actual en el árbol en DX
 
-    ; Si el nodo actual está vacío, insertamos el valor y salimos
-    CMP DX, [NODO_VACIO]
+    
+    CMP DX, [NODO_VACIO] ; Si el nodo actual está vacío, insertamos el valor y salimos
     JE insertarAqui
 
-    ; Si el valor es menor que el actual, vamos al hijo izquierdo
-    CMP CX, DX
+    
+    CMP CX, DX ; Si el valor es menor que el actual, vamos al hijo izquierdo
     JB hijoIzquierdo
 
-    ; Si el valor es mayor que el actual, vamos al hijo derecho
-    JA hijoDerecho
+    
+    JA hijoDerecho ; Si el valor es mayor que el actual, vamos al hijo derecho
 
     ; Si no es menor ni mayor, es igual. En ese caso, el valor ya está en el árbol. Salimos
+	MOV DX, PUERTO_LOG
+    MOV AX, NODO_YA_EXISTE
+    OUT DX, AX
+
     POP AX
     POP DX
     POP SI
@@ -182,17 +187,27 @@ insertarEstaticoLoop:
 hijoIzquierdo:
     ; Calculamos la dirección para el hijo izquierdo: 2*SI + 2
     MOV AX, 2
-    MUL SI
-    ADD AX, 2 ; Sumamos 2 pues es nodo izquierdo
-    MOV SI, AX
-    JMP insertarEstaticoLoop
+    MUL SI ; AX = SI*2
+    ADD AX, 2 ; Sumamos 2 ya que es nodo izquierdo en memoria
+    MOV SI, AX ; Asigno SI = 2*SI + 2
+
+	MOV AX, 2
+	MUL BX ; AX = BX * 2 
+	ADD AX, 1 ; AX = AX + 1
+	MOV BX, AX ; index real en array BX = BX*2 + 1 
+	JMP insertarEstaticoLoop
 
 hijoDerecho:
-    ; Calculamos la dirección para el hijo derecho: 2*SI + 4
+   ; Calculamos la dirección para el hijo izquierdo: 2*SI + 4
     MOV AX, 2
-    MUL SI
-    ADD AX, 4 ; Sumamos 2 pues es nodo derecho
-    MOV SI, AX
+    MUL SI ; AX = SI*2
+    ADD AX, 4 ; Sumamos 4 ya que es nodo izquierdo en memoria
+    MOV SI, AX ; Asigno SI = 2*SI + 4
+
+	MOV AX, 2
+	MUL BX ; AX = BX * 2 
+	ADD AX, 2 ; AX = BX*2 + 2
+	MOV BX, AX ; index real en array BX = BX*2 + 2
     JMP insertarEstaticoLoop
 
 insertarAqui:
@@ -214,6 +229,7 @@ fueraDeRango:
     MOV DX, PUERTO_LOG
     MOV AX, FUERA_DE_RANGO
     OUT DX, AX
+
     POP AX
     POP DX
     POP SI
@@ -230,7 +246,7 @@ insertarDinamico ENDP
 
 
 .ports 	; Definición de puertos
-20: 1, 0, 2, 13, 2, 7, 2, 15, 255
+20: 1, 0, 2, 13, 2, 15, 2, 17, 2, 21, 255
 
 ; 200: 1,2,3  ; Ejemplo puerto simple
 ; 201:(100h,10),(200h,3),(?,4)  ; Ejemplo puerto PDDV
