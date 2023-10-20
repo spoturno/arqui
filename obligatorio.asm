@@ -520,63 +520,64 @@ alturaEstatico ENDP
 
 
 alturaDinamico PROC
-	MOV AX, 6
-	MUL SI
-	MOV SI, AX ; SI = 6 * index
- 	
-	CMP SI, [AREA_MEMORIA]
-	JAE returnZeroDinamico
+    MOV AX, 6
+    MUL SI
+    MOV SI, AX ; SI = 6 * index
 
-	MOV DX, ES:[SI]
-	JE returnZeroDinamico
+    ; Comprobar límites de memoria
+    CMP SI, [AREA_MEMORIA]
+    JAE returnZeroDinamico
 
-	MOV DX, ES:[SI + 2] ; hijo izquierdo
-	MOV CX, ES:[SI + 4] ; hijo derecho
+    ; Comprobar nodo vacío
+    MOV DX, ES:[SI]
+    CMP DX, [NODO_VACIO]
+    JE returnZeroDinamico
 
-	CMP DX, [NODO_VACIO]
-	JE nodoIzquierdoVacioAltura
+    ; Cargar hijos izquierdo y derecho
+    MOV BX, ES:[SI + 2] ; hijo izquierdo
+    MOV CX, ES:[SI + 4] ; hijo derecho
 
-	PUSH SI
-	ADD SI, 2
-	CALL alturaDinamico
-	POP SI
-	JMP checkeoNodoDerechoAltura
-	
+    ; Evaluar hijo izquierdo
+    CMP BX, [NODO_VACIO]
+    JE nodoIzquierdoVacioAltura
+
+    PUSH SI ; Guardar valor actual de SI
+    MOV SI, BX ; mover hijo izquierdo a SI
+    CALL alturaDinamico
+    POP SI ; Restaurar valor original de SI
+    MOV BX, AX ; altura de subárbol izquierdo en BX
+    JMP checkeoNodoDerechoAltura
+
 nodoIzquierdoVacioAltura:
-	MOV AX, 0
+    XOR BX, BX ; BX = 0
 
 checkeoNodoDerechoAltura:
-	CMP CX, [NODO_VACIO]
-	JE nodoDerechoVacioAltura
+    ; Evaluar hijo derecho
+    CMP CX, [NODO_VACIO]
+    JE nodoDerechoVacioAltura
 
-	PUSH SI
-	ADD SI, 4
-	CALL alturaDinamico
-	POP SI
-	MOV DI, BX
-	JMP retornValorAltura
+    PUSH SI ; Guardar valor actual de SI
+    MOV SI, CX ; mover hijo derecho a SI
+    CALL alturaDinamico
+    POP SI ; Restaurar valor original de SI
+    CMP BX, AX ; Comparar altura izquierda (BX) con altura derecha (AX)
+    JG izqEsMasAlto ; Si izquierdo es mayor
+    INC AX ; Derecho + 1
+    RET
 
 nodoDerechoVacioAltura:
-	MOV DI, 0
-
-retornValorAltura:
-	CMP DX, CX	
-	JG izqEsMasAlto
-	MOV BX, CX ; arbol derecho es mas alto
-	INC BX
-	RET
+    XOR AX, AX ; AX = 0
 
 izqEsMasAlto:
-	MOV BX, DX
-	INC BX
-	RET
+    MOV AX, BX
+    INC AX
+    RET
 
 returnZeroDinamico:
-	XOR BX, BX
-	RET
+    XOR AX, AX ; AX = 0
+    RET
 
 alturaDinamico ENDP
-
 
 
 
