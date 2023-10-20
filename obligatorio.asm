@@ -1,4 +1,4 @@
-	.data  ; Segmento de datos
+.data  ; Segmento de datos
 #define ES 0x0240 ; cambio inicio de ES a siguiente pagina de direcciones
 
 PUERTO_ENTRADA EQU 20
@@ -208,10 +208,9 @@ insertarEstaticoLoop:
 
     
     CMP CX, DX ; Si el valor es menor que el actual, vamos al hijo izquierdo
-    JB hijoIzquierdoEstatico
+    JL hijoIzquierdoEstatico
 
-    
-    JA hijoDerechoEstatico ; Si el valor es mayor que el actual, vamos al hijo derecho
+    JG hijoDerechoEstatico ; Si el valor es mayor que el actual, vamos al hijo derecho
 
     ; Si no es menor ni mayor, es igual. En ese caso, el valor ya está en el árbol. Salimos
 	MOV DX, PUERTO_LOG
@@ -313,10 +312,9 @@ insertarDinamicoLoop:
 
     
     CMP CX, DX ; Si el valor es menor que el actual, vamos al hijo izquierdo
-    JB hijoIzquierdoDinamico
+    JL hijoIzquierdoDinamico
 
-    
-    JA hijoDerechoDinamico ; Si el valor es mayor que el actual, vamos al hijo derecho
+    JG hijoDerechoDinamico ; Si el valor es mayor que el actual, vamos al hijo derecho
 
     ; Si no es menor ni mayor, es igual. En ese caso, el valor ya está en el árbol. Salimos
 	MOV DX, PUERTO_LOG
