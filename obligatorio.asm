@@ -5,8 +5,8 @@ PUERTO_ENTRADA EQU 20
 PUERTO_SALIDA EQU 21
 PUERTO_LOG EQU 22
 
-OFFSET_MAXIMO DW 4094 ; OFFSET_MAXIMO = (AREA_MEMORIA - 1) * 2
-AREA_MEMORIA DW 2048
+OFFSET_MAXIMO DW 198 ; OFFSET_MAXIMO = (AREA_MEMORIA - 1) * 2
+AREA_MEMORIA DW 100
 NODO_VACIO DW 0x8000
 
 MODO_ESTATICO DW 0
@@ -47,6 +47,9 @@ loop_start:
 
 	CMP AX, 2
 	JE insertarNodoCase
+
+	CMP AX, 3
+	JE calcularAlturaCase
 
 	CMP AX, 6
 	JE imprimirMemoriaCase
@@ -109,7 +112,55 @@ insertarNodoDinamicoCase:
 	CALL insertarDinamico
 	JMP endCase
 
+calcularAlturaCase:
+    ; Comprobamos el modo_actual y llamamos al procedimiento adecuado
+	MOV DX, [modo_actual]	
 
+    CMP DX, [MODO_ESTATICO]
+    JE calcularAlturaEstatico
+
+    CMP DX, [MODO_DINAMICO]
+    JE calcularAlturaDinamico
+
+    JMP endCase
+
+calcularAlturaEstatico:
+	XOR BX, BX ; Inicializo altura en BX en 0
+	XOR SI, SI ; Inicializo SI en 0 por las dudas
+	XOR DI, DI ; En DI se guardan valores temporales en las llamadas recursivas
+	XOR DX, DX ; En DX se guardan valores temporales en las llamadas recursivas
+
+	CALL alturaEstatico
+
+	MOV DX, PUERTO_SALIDA
+	MOV AX, BX
+	OUT DX, AX ; imprime la altura del arbol en el puerto salida
+
+	MOV DX, PUERTO_LOG
+	MOV AX, EXITO
+	OUT DX, AX ; imprime el codigo 0 en puerto log
+
+	JMP endCase
+
+calcularAlturaDinamico:
+	XOR BX, BX ; Inicializo altura en BX en 0
+	XOR SI, SI ; Inicializo SI en 0 por las dudas
+	XOR DI, DI ; En DI se guardan valores temporales en las llamadas recursivas
+	XOR DX, DX ; En DX se guardan valores temporales en las llamadas recursivas
+	XOR AX, AX ; Inicializamos AX en 0
+
+	CALL alturaDinamico
+
+	MOV DX, PUERTO_SALIDA
+	OUT DX, AX ; imprime la altura del arbol en el puerto salida
+
+	MOV DX, PUERTO_LOG
+	MOV AX, EXITO
+	OUT DX, AX ; imprime el codigo 0 en puerto log
+
+	JMP endCase
+	
+	
 imprimirMemoriaCase:
 	IN AX, PUERTO_ENTRADA ; leo parametro - valor de nodo a insertar
 	MOV CX, AX ; utilizo CX para guardar parametro
@@ -342,7 +393,6 @@ hijoIzquierdoVacio:
 	MOV ES:[SI], AX
 	MOV SI, AX ; index = index_siguiente para llamada recursiva
 	JMP insertarDinamicoLoop
-
 	
 hijoDerechoDinamico:
 	ADD SI, 4 ; actualmente SI es para acceder arbol[6*index + 4]
@@ -387,7 +437,6 @@ fueraDeRangoDinamico:
     POP SI
     POP BX
     RET
-
 insertarDinamico ENDP
 
 
@@ -420,13 +469,119 @@ imprimirMemEnd:
 	POP AX
 	POP SI
 	RET
-	
 imprimirMemoria ENDP
+
+alturaEstatico PROC
+	CMP SI, [AREA_MEMORIA] ; Comprobar si index >= AREA_MEMORIA
+    JAE returnZeroEstatico
+
+	MOV AX, 2
+	MUL SI
+	MOV SI, AX ; SI = SI*2
+	
+	MOV DX, ES:[SI] ; Cargo en DX el valor actual de arbol[index]
+
+	CMP DX, [NODO_VACIO] ; Comprobar si arbol[index] == NODO_VACIO
+	JE returnZeroEstatico
+
+	; Llamar recursivamente para izq = alturaEstatico(2 * index + 2)
+	ADD SI, 2
+	PUSH SI
+	CALL alturaEstatico
+	POP CX         ; Recuperar el valor original de index en CX
+    MOV DI, BX     ; Guardar el resultado de izq en DI
+
+	; Llamar recursivamente para der = alturaEstatico(2 * index + 4)
+    ADD CX, 2
+    PUSH CX        ; Guardar el valor de CX
+    CALL alturaEstatico
+    POP CX         ; Recuperar el valor original de index en CX
+
+	; Comparar izq y der
+    CMP DI, BX
+    JG izqEsMayor
+
+    ; Si izq <= der
+    INC BX         ; BX = 1 + der
+    JMP returnAlturaEstatico
+
+izqEsMayor:
+	MOV BX, DI
+    INC BX         ; BX = 1 + izq
+	
+returnAlturaEstatico:
+	RET
+
+returnZeroEstatico:
+	XOR AX, AX ; AX = 0
+	RET
+
+alturaEstatico ENDP
+
+
+alturaDinamico PROC
+	MOV AX, 6
+	MUL SI
+	MOV SI, AX ; SI = 6 * index
+ 	
+	CMP SI, [AREA_MEMORIA]
+	JAE returnZeroDinamico
+
+	MOV DX, ES:[SI]
+	JE returnZeroDinamico
+
+	MOV DX, ES:[SI + 2] ; hijo izquierdo
+	MOV CX, ES:[SI + 4] ; hijo derecho
+
+	CMP DX, [NODO_VACIO]
+	JE nodoIzquierdoVacioAltura
+
+	PUSH SI
+	ADD SI, 2
+	CALL alturaDinamico
+	POP SI
+	JMP checkeoNodoDerechoAltura
+	
+nodoIzquierdoVacioAltura:
+	MOV AX, 0
+
+checkeoNodoDerechoAltura:
+	CMP CX, [NODO_VACIO]
+	JE nodoDerechoVacioAltura
+
+	PUSH SI
+	ADD SI, 4
+	CALL alturaDinamico
+	POP SI
+	MOV DI, BX
+	JMP retornValorAltura
+
+nodoDerechoVacioAltura:
+	MOV DI, 0
+
+retornValorAltura:
+	CMP DX, CX	
+	JG izqEsMasAlto
+	MOV BX, CX ; arbol derecho es mas alto
+	INC BX
+	RET
+
+izqEsMasAlto:
+	MOV BX, DX
+	INC BX
+	RET
+
+returnZeroDinamico:
+	XOR BX, BX
+	RET
+
+alturaDinamico ENDP
+
 
 
 
 .ports 	; Definición de puertos
-20: 1,1,2,5,2,-5,2,-4,2,8,6,10,255
+20: 1,1,2,50,2,40,2,30,2,45,2,46,2,47,2,48,3,255
 
 ; 200: 1,2,3  ; Ejemplo puerto simple
 ; 201:(100h,10),(200h,3),(?,4)  ; Ejemplo puerto PDDV

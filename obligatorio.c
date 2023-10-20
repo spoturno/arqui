@@ -195,11 +195,7 @@ unsigned short alturaEstatico(unsigned short index) {
     unsigned short izq = alturaEstatico(2 * index + 1);
     unsigned short der = alturaEstatico(2 * index + 2);
 
-    if (izq > der) {
-        return 1 + izq;
-    } else {
-        return 1 + der;
-    }
+    return 1 + ((izq > der) ? izq : der);
 }
 
 unsigned short alturaDinamico(unsigned short index) {
@@ -211,14 +207,13 @@ unsigned short alturaDinamico(unsigned short index) {
         return 0;
     }
 
-    unsigned short izq = arbol[3 * index + 1] != NODO_VACIO ? alturaDinamico(arbol[3 * index + 1]) : 0;
-    unsigned short der = arbol[3 * index + 2] != NODO_VACIO ? alturaDinamico(arbol[3 * index + 2]) : 0;
+    unsigned short hijoIzq = arbol[3 * index + 1];
+    unsigned short hijoDer = arbol[3 * index + 2];
 
-    if (izq > der) {
-        return 1 + izq;
-    } else {
-        return 1 + der;
-    }
+    unsigned short izq = (hijoIzq != NODO_VACIO) ? alturaDinamico(hijoIzq) : 0;
+    unsigned short der = (hijoDer != NODO_VACIO) ? alturaDinamico(hijoDer) : 0;
+
+    return 1 + ((izq > der) ? izq : der);
 }
 
 unsigned short sumaEstatico(unsigned short index) {
@@ -301,22 +296,6 @@ void imprimirDinamico(unsigned short index, int orden) {
     }
 }
 
-void imprimirMemoriaEstatico(short N) {
-    short index = 0;
-    while (index < N) { // En 8086 seria index < 2*N
-        printf("%d ", arbol[index]);
-        index++;
-    }
-}
-
-void imprimirMemoriaDinamico(short N) {
-    short index = 0;
-    while (index < 3*N) { // En 8086 seria index < 3*N
-        printf("%d ", arbol[index]);
-        index++;
-    }
-}
-
 /* Funciones Principales */
 
 void insertar(short num) {
@@ -359,8 +338,14 @@ void imprimirMemoria(short N) {
     }
 
     if (modo_actual == MODO_ESTATICO) {
-        imprimirMemoriaEstatico(N);
+        N = 1 * N; // en assembly seria N = 2 * N
     } else {
-        imprimirMemoriaDinamico(N);
+        N = 3 * N; // en assembly seria N = 6 * N
+    }
+
+    short index = 0;
+    while (index < N) { // En 8086 seria index < 3*N
+        printf("%d ", arbol[index]);
+        index++;
     }
 }
