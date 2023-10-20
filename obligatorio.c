@@ -24,12 +24,15 @@ unsigned short alturaEstatico(unsigned short index);
 unsigned short alturaDinamico(unsigned short index);
 void imprimirEstatico(unsigned short index, int orden);
 void imprimirDinamico(unsigned short index, int orden);
+void imprimirMemoriaEstatico(short N);
+void imprimirMemoriaDinamico(short N);
 void inicializarMemoria();
 
 /* Funciones Principales */
 void insertar(short num);
 void cambiarModo(ModoAlmacenamiento modo);
 void imprimir(int orden);
+void imprimirMemoria(short N);
 unsigned short suma();
 unsigned short altura();
 
@@ -64,6 +67,10 @@ int main() {
             case 2: // Agregar Nodo
                 parametro = in(PUERTO_ENTRADA);
                 out(PUERTO_LOG, parametro);
+                if (parametro  <= NODO_VACIO) {
+                    out(PUERTO_LOG, 3); // Parámetro inválido
+                    break;
+                }
                 insertar(parametro);
                 out(PUERTO_LOG, 0);
                 break;
@@ -88,7 +95,7 @@ int main() {
             case 6: // Imprimir Memoria
                 parametro = in(PUERTO_ENTRADA);
                 out(PUERTO_LOG, parametro);
-                // TODO: imprimirMemoria(parametro)
+                imprimirMemoria(parametro);
                 out(PUERTO_LOG, 0);
                 break;
 
@@ -294,6 +301,22 @@ void imprimirDinamico(unsigned short index, int orden) {
     }
 }
 
+void imprimirMemoriaEstatico(short N) {
+    short index = 0;
+    while (index < N) { // En 8086 seria index < 2*N
+        printf("%d ", arbol[index]);
+        index++;
+    }
+}
+
+void imprimirMemoriaDinamico(short N) {
+    short index = 0;
+    while (index < 3*N) { // En 8086 seria index < 3*N
+        printf("%d ", arbol[index]);
+        index++;
+    }
+}
+
 /* Funciones Principales */
 
 void insertar(short num) {
@@ -327,4 +350,17 @@ void imprimir(int orden) {
         imprimirDinamico(0, orden);
     }
     printf("\n");
+}
+
+void imprimirMemoria(short N) {
+    if (N > AREA_MEMORIA) {
+        out(PUERTO_LOG, 4);
+        return; // Fuera de rango
+    }
+
+    if (modo_actual == MODO_ESTATICO) {
+        imprimirMemoriaEstatico(N);
+    } else {
+        imprimirMemoriaDinamico(N);
+    }
 }

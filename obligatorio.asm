@@ -5,7 +5,7 @@ PUERTO_ENTRADA EQU 20
 PUERTO_SALIDA EQU 21
 PUERTO_LOG EQU 22
 
-OFFSET_MAXIMO DW 4097 ; OFFSET_MAXIMO = (AREA_MEMORIA - 1) * 2
+OFFSET_MAXIMO DW 4094 ; OFFSET_MAXIMO = (AREA_MEMORIA - 1) * 2
 AREA_MEMORIA DW 2048
 NODO_VACIO DW 0x8000
 
@@ -47,6 +47,9 @@ loop_start:
 
 	CMP AX, 2
 	JE insertarNodoCase
+
+	CMP AX, 6
+	JE imprimirMemoriaCase
 
 	CMP AX, 255
 	JE stopCase
@@ -105,6 +108,39 @@ insertarNodoEstaticoCase:
 insertarNodoDinamicoCase:
 	CALL insertarDinamico
 	JMP endCase
+
+
+imprimirMemoriaCase:
+	IN AX, PUERTO_ENTRADA ; leo parametro - valor de nodo a insertar
+	MOV CX, AX ; utilizo CX para guardar parametro
+    MOV DX, PUERTO_LOG
+    OUT DX, AX ; imprime el parametro en puerto log
+
+    ; Comprobamos el modo_actual y llamamos al procedimiento adecuado
+	MOV DX, [modo_actual]	
+
+    CMP DX, [MODO_ESTATICO]
+    JE imprimirMemoriaEstaticoCase
+
+    CMP DX, [MODO_DINAMICO]
+    JE imprimirMemoriaDinamicoCase
+
+    JMP endCase
+
+imprimirMemoriaEstaticoCase:
+	ADD CX, CX ; CX = 2 * N para saber hasta donde imprimir
+	SUB CX, 2 ; Ahora CX vale 2*N - 2 que es el index maximo
+	CALL imprimirMemoria
+	JMP endCase
+
+imprimirMemoriaDinamicoCase:
+	MOV AX, 6
+	MUL CX ; AX = 6 * N para saber hasta donde imprimir
+	MOV CX, AX ; CX = AX * 6
+	SUB CX, 2 ; Ahora CX vale 6*N - 2 que es el index maximo
+	CALL imprimirMemoria
+	JMP endCase
+
 
 defaultCase:
 	MOV AX, COMANDO_INVALIDO
@@ -357,9 +393,42 @@ fueraDeRangoDinamico:
 insertarDinamico ENDP
 
 
+imprimirMemoria PROC
+	PUSH SI
+	PUSH AX
+	PUSH DX
+	
+	ADD CX, CX ; CX = 2 * N para saber hasta donde imprimir
+	SUB CX, 2 ; Ahora CX vale 2*N - 2 que es el index maximo
+	XOR SI, SI ; inicializo SI en 0 para direccionar
+	
+imprimirMemLoop:
+	CMP SI, CX
+	JE imprimirMemEnd
+	
+    MOV DX, PUERTO_SALIDA
+    MOV AX, ES:[SI] ; guardo en AX valor actual de arbol[index]
+    OUT DX, AX
+	
+	ADD SI, 2 ; index = index + 2
+	JMP imprimirMemLoop
+
+imprimirMemEnd:
+	MOV DX, PUERTO_LOG
+    MOV AX, EXITO ; guardo en AX valor actual de arbol[index]
+    OUT DX, AX
+
+	POP DX
+	POP AX
+	POP SI
+	RET
+	
+imprimirMemoria ENDP
+
+
 
 .ports 	; Definición de puertos
-20: 1,0,2,5,2,-1,2,5,2,7,2,8,2,9,2,10,2,11,2,12,2,13,2,14,2,15,2,16,2,17,2,18,255
+20: 1,1,2,5,2,-5,2,-4,2,8,6,10,255
 
 ; 200: 1,2,3  ; Ejemplo puerto simple
 ; 201:(100h,10),(200h,3),(?,4)  ; Ejemplo puerto PDDV
