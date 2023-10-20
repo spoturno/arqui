@@ -5,8 +5,8 @@ PUERTO_ENTRADA EQU 20
 PUERTO_SALIDA EQU 21
 PUERTO_LOG EQU 22
 
-OFFSET_MAXIMO DW 32 ; OFFSET_MAXIMO = (AREA_MEMORIA - 1) * 2
-AREA_MEMORIA DW 17
+OFFSET_MAXIMO DW 4097 ; OFFSET_MAXIMO = (AREA_MEMORIA - 1) * 2
+AREA_MEMORIA DW 2048
 NODO_VACIO DW 0x8000
 
 MODO_ESTATICO DW 0
@@ -116,6 +116,9 @@ endCase:
     JMP loop_start ; Terminar el bucle y volver a empezar
 
 stopCase:
+	MOV AX, EXITO
+	MOV DX, PUERTO_LOG
+	OUT DX, AX
 	HLT
 
 
@@ -356,7 +359,7 @@ insertarDinamico ENDP
 
 
 .ports 	; Definición de puertos
-20: 1, 1, 2, 7, 2, 10, 2, 5, 255
+20: 1,0,2,5,2,-1,2,5,2,7,2,8,2,9,2,10,2,11,2,12,2,13,2,14,2,15,2,16,2,17,2,18,255
 
 ; 200: 1,2,3  ; Ejemplo puerto simple
 ; 201:(100h,10),(200h,3),(?,4)  ; Ejemplo puerto PDDV
