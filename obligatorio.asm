@@ -20,6 +20,7 @@ PARAMETRO_INVALIDO EQU 2 ; si el valor de algún parámetro recibido es inválid
 FUERA_DE_RANGO EQU 4 ; si al agregar un nodo se intenta escribir fuera del área de memoria
 NODO_YA_EXISTE EQU 8 ; si el nodo a agregar ya se encuentra en el árbol.
 
+suma_total DW 22
 modo_actual DW 0
 index_siguiente DW 0
 comando DW ?
@@ -53,6 +54,9 @@ loop_start:
 
 	CMP AX, 3
 	JE calcularAlturaCase
+
+	CMP AX, 4
+	JE calcularSumaCase
 
 	CMP AX, 5
 	JE imprimirArbolCase
@@ -155,6 +159,56 @@ calcularAlturaDinamico:
 	MOV AX, DI
 	OUT DX, AX ; imprime la altura del arbol en el puerto salida
 
+	MOV DX, PUERTO_LOG
+	MOV AX, EXITO
+	OUT DX, AX ; imprime el codigo 0 en puerto log
+
+	JMP endCase
+
+
+calcularSumaCase:
+	XOR BX, BX ; Inicializo altura en BX en 0
+	XOR SI, SI ; Inicializo SI en 0 por las dudas
+	XOR DI, DI ; En DI se guardan valores temporales en las llamadas recursivas
+	XOR DX, DX ; En DX se guardan valores temporales en las llamadas recursivas
+
+	MOV [suma_total], BX ; Inicializo Suma en 0
+
+	; Comprobamos el modo_actual y llamamos al procedimiento adecuado
+	MOV DX, [modo_actual]	
+
+    CMP DX, [MODO_ESTATICO]
+    JE calcularSumaEstatico
+
+    CMP DX, [MODO_DINAMICO]
+    JE calcularSumaDinamico
+
+    JMP endCase
+	
+calcularSumaEstatico:
+	CALL sumaEstatico
+	
+	; Imprimir en PUERTO_SALIDA valor de la suma
+	MOV DX, PUERTO_SALIDA
+	MOV AX, [suma_total]
+	OUT DX, AX ; imprime la altura del arbol en el puerto salida
+
+	; Imprimir en PUERTO_LOG codigo 0
+	MOV DX, PUERTO_LOG
+	MOV AX, EXITO
+	OUT DX, AX ; imprime el codigo 0 en puerto log
+
+	JMP endCase
+
+calcularSumaDinamico:
+	CALL sumaDinamico
+
+	; Imprimir en PUERTO_SALIDA valor de la suma
+	MOV DX, PUERTO_SALIDA
+	MOV AX, [suma_total]
+	OUT DX, AX ; imprime la altura del arbol en el puerto salida
+
+	; Imprimir en PUERTO_LOG codigo 0
 	MOV DX, PUERTO_LOG
 	MOV AX, EXITO
 	OUT DX, AX ; imprime el codigo 0 en puerto log
@@ -778,11 +832,87 @@ imprimirDinamicoAscendente PROC
 endImprimirArbolDA:
 	RET
 imprimirDinamicoAscendente ENDP
+
+
+sumaEstatico PROC
+	CMP SI, [AREA_MEMORIA]
+	JAE retornoSumaCeroEstatico
+
+	MOV DX, ES:[SI]
+	
+	CMP DX, [NODO_VACIO]
+	JE retornoSumaCeroEstatico
+
+	MOV AX, [suma_total]
+	ADD AX, ES:[SI]
+	MOV [suma_total], AX
+
+	MOV AX, 2
+	MUL SI
+	MOV SI, AX
+
+	; Obtener altura de hijo izquierdo
+	PUSH SI 
+	ADD SI, 2
+	CALL sumaEstatico
+	POP SI
+	
+	PUSH SI
+	; Obtener altura de hijo derecho
+	ADD SI, 4
+	CALL sumaEstatico
+	POP SI
+
+	RET
+
+retornoSumaCeroEstatico:
+	RET	
+
+sumaEstatico ENDP
+
+sumaDinamico PROC
+	CMP SI, [NODO_VACIO]
+	JE retornoSumaCeroDinamico
+
+	MOV AX, 6
+	MUL SI
+	MOV SI, AX
+
+	CMP SI, [AREA_MEMORIA]
+	JAE retornoSumaCeroDinamico
+
+	MOV DX, ES:[SI]
+	CMP DX, [NODO_VACIO]
+	JE retornoSumaCeroDinamico
+
+	; Sumo el valor actual del arbol[index] a suma_total
+	MOV AX, [suma_total] ; guardo la suma_total actual
+	ADD AX, ES:[SI] ; suma_total + arbol[index]
+	MOV [suma_total], AX ; reasigno suma_total
+
+	; Obtener altura de hijo izquierdo
+	PUSH SI 
+	MOV SI, ES:[SI+2]
+	CALL sumaDinamico
+	POP SI
+	
+	PUSH SI
+	; Obtener altura de hijo derecho
+	MOV SI, ES:[SI+4]
+	CALL sumaDinamico
+	POP SI
+
+	RET
+
+retornoSumaCeroDinamico:
+	RET	
+
+sumaDinamico ENDP
 	
 
 
 .ports 	; Definición de puertos
-20: 1,0,5,1,1,1,5,1,1,0,2,4,5,1,1,1,2,5,5,1,1,0,2,100,2,128,2,60,2,40,2,20,2,22,5,1,5,0,1,1,2,50,2,40,2,30,2,45,2,46,2,47,2,48,5,0,5,1,255
+20: 1,0,2,100,2,200,2,50,2,30,2,150,4,1,1,2,102,2,202,2,52,2,32,2,152,4,255
 
 ; 200: 1,2,3  ; Ejemplo puerto simple
 ; 201:(100h,10),(200h,3),(?,4)  ; Ejemplo puerto PDDV

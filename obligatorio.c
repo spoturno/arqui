@@ -230,6 +230,10 @@ unsigned short sumaEstatico(unsigned short index) {
 }
 
 unsigned short sumaDinamico(unsigned short index) {
+    if (index == NODO_VACIO) {
+        return 0;
+    }
+
     if (3 * index >= AREA_MEMORIA) {
         return 0;
     }
@@ -238,8 +242,8 @@ unsigned short sumaDinamico(unsigned short index) {
         return 0;
     }
 
-    unsigned short sumIzq = arbol[3 * index + 1] != NODO_VACIO ? sumaDinamico(arbol[3 * index + 1]) : 0;
-    unsigned short sumDer = arbol[3 * index + 2] != NODO_VACIO ? sumaDinamico(arbol[3 * index + 2]) : 0;
+    unsigned short sumIzq = sumaDinamico(arbol[3 * index + 1]);
+    unsigned short sumDer = sumaDinamico(arbol[3 * index + 2]);
 
     return arbol[3 * index] + sumIzq + sumDer;
 }
