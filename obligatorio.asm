@@ -133,7 +133,7 @@ calcularAlturaEstatico:
 	CALL alturaEstatico
 
 	MOV DX, PUERTO_SALIDA
-	MOV AX, BX
+	MOV AX, DI
 	OUT DX, AX ; imprime la altura del arbol en el puerto salida
 
 	MOV DX, PUERTO_LOG
@@ -471,118 +471,57 @@ imprimirMemEnd:
 	RET
 imprimirMemoria ENDP
 
+
 alturaEstatico PROC
-	CMP SI, [AREA_MEMORIA] ; Comprobar si index >= AREA_MEMORIA
-    JAE returnZeroEstatico
+	CMP SI, [AREA_MEMORIA]
+	JAE retornoCeroEstatico
+
+	MOV DX, ES:[SI]
+	
+	CMP DX, [NODO_VACIO]
+	JE retornoCeroEstatico
 
 	MOV AX, 2
 	MUL SI
-	MOV SI, AX ; SI = SI*2
-	
-	MOV DX, ES:[SI] ; Cargo en DX el valor actual de arbol[index]
+	MOV SI, AX
 
-	CMP DX, [NODO_VACIO] ; Comprobar si arbol[index] == NODO_VACIO
-	JE returnZeroEstatico
-
-	; Llamar recursivamente para izq = alturaEstatico(2 * index + 2)
+	; Obtener altura de hijo izquierdo
+	PUSH SI 
 	ADD SI, 2
-	PUSH SI
 	CALL alturaEstatico
-	POP CX         ; Recuperar el valor original de index en CX
-    MOV DI, BX     ; Guardar el resultado de izq en DI
-
-	; Llamar recursivamente para der = alturaEstatico(2 * index + 4)
-    ADD CX, 2
-    PUSH CX        ; Guardar el valor de CX
-    CALL alturaEstatico
-    POP CX         ; Recuperar el valor original de index en CX
-
-	; Comparar izq y der
-    CMP DI, BX
-    JG izqEsMayor
-
-    ; Si izq <= der
-    INC BX         ; BX = 1 + der
-    JMP returnAlturaEstatico
-
-izqEsMayor:
-	MOV BX, DI
-    INC BX         ; BX = 1 + izq
+	POP SI
+	PUSH DI
 	
-returnAlturaEstatico:
+	; Obtener altura de hijo derecho
+	ADD SI, 4
+	CALL alturaEstatico
+	POP BX
+
+	; Comprobar cual es la altura mayor y sumar
+	CMP DI, BX
+	JGE alturaIzqEsMayorOIgual
+	MOV DI, BX
+
+alturaIzqEsMayorOIgual:
+	INC DI
 	RET
 
-returnZeroEstatico:
-	XOR AX, AX ; AX = 0
-	RET
+retornoCeroEstatico:
+	XOR DI, DI
+	RET	
 
 alturaEstatico ENDP
 
 
+
 alturaDinamico PROC
-    MOV AX, 6
-    MUL SI
-    MOV SI, AX ; SI = 6 * index
-
-    ; Comprobar límites de memoria
-    CMP SI, [AREA_MEMORIA]
-    JAE returnZeroDinamico
-
-    ; Comprobar nodo vacío
-    MOV DX, ES:[SI]
-    CMP DX, [NODO_VACIO]
-    JE returnZeroDinamico
-
-    ; Cargar hijos izquierdo y derecho
-    MOV BX, ES:[SI + 2] ; hijo izquierdo
-    MOV CX, ES:[SI + 4] ; hijo derecho
-
-    ; Evaluar hijo izquierdo
-    CMP BX, [NODO_VACIO]
-    JE nodoIzquierdoVacioAltura
-
-    PUSH SI ; Guardar valor actual de SI
-    MOV SI, BX ; mover hijo izquierdo a SI
-    CALL alturaDinamico
-    POP SI ; Restaurar valor original de SI
-    MOV BX, AX ; altura de subárbol izquierdo en BX
-    JMP checkeoNodoDerechoAltura
-
-nodoIzquierdoVacioAltura:
-    XOR BX, BX ; BX = 0
-
-checkeoNodoDerechoAltura:
-    ; Evaluar hijo derecho
-    CMP CX, [NODO_VACIO]
-    JE nodoDerechoVacioAltura
-
-    PUSH SI ; Guardar valor actual de SI
-    MOV SI, CX ; mover hijo derecho a SI
-    CALL alturaDinamico
-    POP SI ; Restaurar valor original de SI
-    CMP BX, AX ; Comparar altura izquierda (BX) con altura derecha (AX)
-    JG izqEsMasAlto ; Si izquierdo es mayor
-    INC AX ; Derecho + 1
-    RET
-
-nodoDerechoVacioAltura:
-    XOR AX, AX ; AX = 0
-
-izqEsMasAlto:
-    MOV AX, BX
-    INC AX
-    RET
-
-returnZeroDinamico:
-    XOR AX, AX ; AX = 0
-    RET
-
+  RET
 alturaDinamico ENDP
 
 
 
 .ports 	; Definición de puertos
-20: 1,1,2,50,2,40,2,30,2,45,2,46,2,47,2,48,3,255
+20: 1,0,2,50,2,40,2,30,2,45,2,46,2,47,2,48,3,255
 
 ; 200: 1,2,3  ; Ejemplo puerto simple
 ; 201:(100h,10),(200h,3),(?,4)  ; Ejemplo puerto PDDV

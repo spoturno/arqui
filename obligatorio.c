@@ -199,6 +199,10 @@ unsigned short alturaEstatico(unsigned short index) {
 }
 
 unsigned short alturaDinamico(unsigned short index) {
+    if (index == NODO_VACIO) {
+        return 0;
+    }
+    
     if (3 * index >= AREA_MEMORIA) {
         return 0;
     }
@@ -207,11 +211,8 @@ unsigned short alturaDinamico(unsigned short index) {
         return 0;
     }
 
-    unsigned short hijoIzq = arbol[3 * index + 1];
-    unsigned short hijoDer = arbol[3 * index + 2];
-
-    unsigned short izq = (hijoIzq != NODO_VACIO) ? alturaDinamico(hijoIzq) : 0;
-    unsigned short der = (hijoDer != NODO_VACIO) ? alturaDinamico(hijoDer) : 0;
+    unsigned short izq = alturaDinamico(arbol[3 * index + 1]);
+    unsigned short der = alturaDinamico(arbol[3 * index + 2]);
 
     return 1 + ((izq > der) ? izq : der);
 }
