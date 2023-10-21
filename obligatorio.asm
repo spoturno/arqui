@@ -28,6 +28,9 @@ comando DW ?
 
 ; Inicialización del bucle
 loop_start: 
+
+	; Inicializacion de registros en 0
+	XOR SI, SI
 	
 	; Leer comando del PUERTO_ENTRADA
     IN  AX, PUERTO_ENTRADA
@@ -50,6 +53,9 @@ loop_start:
 
 	CMP AX, 3
 	JE calcularAlturaCase
+
+	CMP AX, 5
+	JE imprimirArbolCase
 
 	CMP AX, 6
 	JE imprimirMemoriaCase
@@ -113,7 +119,12 @@ insertarNodoDinamicoCase:
 	JMP endCase
 
 calcularAlturaCase:
-    ; Comprobamos el modo_actual y llamamos al procedimiento adecuado
+	XOR BX, BX ; Inicializo altura en BX en 0
+	XOR SI, SI ; Inicializo SI en 0 por las dudas
+	XOR DI, DI ; En DI se guardan valores temporales en las llamadas recursivas
+	XOR DX, DX ; En DX se guardan valores temporales en las llamadas recursivas
+
+	; Comprobamos el modo_actual y llamamos al procedimiento adecuado
 	MOV DX, [modo_actual]	
 
     CMP DX, [MODO_ESTATICO]
@@ -125,11 +136,6 @@ calcularAlturaCase:
     JMP endCase
 
 calcularAlturaEstatico:
-	XOR BX, BX ; Inicializo altura en BX en 0
-	XOR SI, SI ; Inicializo SI en 0 por las dudas
-	XOR DI, DI ; En DI se guardan valores temporales en las llamadas recursivas
-	XOR DX, DX ; En DX se guardan valores temporales en las llamadas recursivas
-
 	CALL alturaEstatico
 
 	MOV DX, PUERTO_SALIDA
@@ -143,12 +149,6 @@ calcularAlturaEstatico:
 	JMP endCase
 
 calcularAlturaDinamico:
-	XOR BX, BX ; Inicializo altura en BX en 0
-	XOR SI, SI ; Inicializo SI en 0 por las dudas
-	XOR DI, DI ; En DI se guardan valores temporales en las llamadas recursivas
-	XOR DX, DX ; En DX se guardan valores temporales en las llamadas recursivas
-	XOR AX, AX ; Inicializamos AX en 0
-
 	CALL alturaDinamico
 
 	MOV DX, PUERTO_SALIDA
@@ -161,6 +161,74 @@ calcularAlturaDinamico:
 
 	JMP endCase
 	
+imprimirArbolCase:
+	IN AX, PUERTO_ENTRADA ; leo parametro de orden
+    MOV DX, PUERTO_LOG
+    OUT DX, AX ; imprime el parametro en puerto log
+
+	MOV DX, [modo_actual]	
+
+    CMP DX, [MODO_ESTATICO]
+    JE imprimirArbolEstatico
+
+    CMP DX, [MODO_DINAMICO]
+    JE imprimirArbolDinamico
+
+    JMP endCase
+
+imprimirArbolEstatico:
+	CMP AX, 0
+	JE imprimirArbolEstaticoAscendente
+
+	CMP AX, 1
+	JE imprimirArbolEstaticoDescendente
+
+	; Si no es ninguno de los modos válidos, envía error
+	MOV DX, PUERTO_LOG
+    MOV AX, PARAMETRO_INVALIDO ; guardo en AX valor actual de arbol[index]
+    OUT DX, AX
+    JMP endCase
+	
+imprimirArbolEstaticoAscendente:
+	CALL imprimirEstaticoAscendente
+	MOV DX, PUERTO_LOG
+    MOV AX, EXITO ; guardo en AX valor actual de arbol[index]
+    OUT DX, AX
+	JMP endCase
+
+imprimirArbolEstaticoDescendente:
+	CALL imprimirEstaticoDescendente
+	MOV DX, PUERTO_LOG
+    MOV AX, EXITO ; guardo en AX valor actual de arbol[index]
+    OUT DX, AX
+	JMP endCase
+
+imprimirArbolDinamico:
+	CMP AX, 0
+	JE imprimirArbolDinamicoAscendente
+
+	CMP AX, 1
+	JE imprimirArbolDinamicoDescendente
+
+	; Si no es ninguno de los modos válidos, envía error
+	MOV DX, PUERTO_LOG
+    MOV AX, PARAMETRO_INVALIDO ; guardo en AX valor actual de arbol[index]
+    OUT DX, AX
+    JMP endCase
+
+imprimirArbolDinamicoAscendente:
+	CALL imprimirDinamicoAscendente
+	MOV DX, PUERTO_LOG
+    MOV AX, EXITO ; guardo en AX valor actual de arbol[index]
+    OUT DX, AX
+	JMP endCase
+
+imprimirArbolDinamicoDescendente:
+	CALL imprimirDinamicoDescendente
+	MOV DX, PUERTO_LOG
+    MOV AX, EXITO ; guardo en AX valor actual de arbol[index]
+    OUT DX, AX
+	JMP endCase
 	
 imprimirMemoriaCase:
 	IN AX, PUERTO_ENTRADA ; leo parametro - valor de nodo a insertar
@@ -561,8 +629,160 @@ alturaDinamico ENDP
 
 
 
+imprimirEstaticoAscendente PROC
+	CMP SI, [AREA_MEMORIA]
+	JAE endImprimirArbolEA
+	
+	MOV DX, ES:[SI]
+	CMP DX, [NODO_VACIO]
+	JE endImprimirArbolEA
+
+	PUSH SI ; Preservo valor de SI
+
+	; Viajo hacia el nodo izquierdo (2*SI + 2)
+	MOV AX, 2
+	MUL SI
+	MOV SI, AX
+	ADD SI, 2
+	CALL imprimirEstaticoAscendente
+	POP SI ; Recupero valor anterior de SI
+	
+	MOV DX, PUERTO_SALIDA
+    MOV AX, ES:[SI] ; guardo en AX valor actual de arbol[index]
+    OUT DX, AX
+
+	PUSH SI ; Preservo valor de SI
+
+	; Viajo hacia el nodo izquierdo (2*SI + 4)
+	MOV AX, 2
+	MUL SI
+	MOV SI, AX
+	ADD SI, 4
+	CALL imprimirEstaticoAscendente
+	POP SI ; Recupero valor anterior de SI
+
+endImprimirArbolEA:
+	RET
+imprimirEstaticoAscendente ENDP
+
+
+imprimirEstaticoDescendente PROC
+	CMP SI, [AREA_MEMORIA]
+	JAE endImprimirArbolED
+	
+	MOV DX, ES:[SI]
+	CMP DX, [NODO_VACIO]
+	JE endImprimirArbolED
+
+	PUSH SI ; Preservo valor de SI
+
+	; Viajo hacia el nodo izquierdo (2*SI + 2)
+	MOV AX, 2
+	MUL SI
+	MOV SI, AX
+	ADD SI, 4
+	CALL imprimirEstaticoDescendente
+	POP SI ; Recupero valor anterior de SI
+	
+	MOV DX, PUERTO_SALIDA
+    MOV AX, ES:[SI] ; guardo en AX valor actual de arbol[index]
+    OUT DX, AX
+
+	PUSH SI ; Preservo valor de SI
+
+	; Viajo hacia el nodo izquierdo (2*SI + 4)
+	MOV AX, 2
+	MUL SI
+	MOV SI, AX
+	ADD SI, 2
+	CALL imprimirEstaticoDescendente
+	POP SI ; Recupero valor anterior de SI
+
+endImprimirArbolED:
+	RET
+imprimirEstaticoDescendente ENDP
+
+
+imprimirDinamicoDescendente PROC
+	CMP SI, [NODO_VACIO]
+	JE endImprimirArbolDD
+
+	MOV AX, 6
+	MUL SI
+	MOV SI, AX
+
+	CMP SI, [AREA_MEMORIA]
+	JAE endImprimirArbolDD
+
+	MOV DX, ES:[SI]
+	CMP DX, [NODO_VACIO]
+	JE endImprimirArbolDA
+
+	PUSH SI ; Preservo valor de SI
+
+	; Viajo hacia el nodo izquierdo (6*SI + 4)
+	MOV SI, ES:[SI+4]
+	CALL imprimirDinamicoDescendente
+	POP SI ; Recupero valor anterior de SI
+	
+	MOV DX, PUERTO_SALIDA
+    MOV AX, ES:[SI] ; guardo en AX valor actual de arbol[index]
+    OUT DX, AX
+
+	PUSH SI ; Preservo valor de SI
+
+	; Viajo hacia el nodo izquierdo (2*SI + 2)
+	MOV SI, ES:[SI+2]
+	CALL imprimirDinamicoDescendente
+	POP SI ; Recupero valor anterior de SI
+
+endImprimirArbolDD:
+	RET
+imprimirDinamicoDescendente ENDP
+
+
+
+imprimirDinamicoAscendente PROC
+	CMP SI, [NODO_VACIO]
+	JE endImprimirArbolDA
+
+	MOV AX, 6
+	MUL SI
+	MOV SI, AX
+
+	CMP SI, [AREA_MEMORIA]
+	JAE endImprimirArbolDA
+
+	MOV DX, ES:[SI]
+	CMP DX, [NODO_VACIO]
+	JE endImprimirArbolDA
+
+	PUSH SI ; Preservo valor de SI
+
+	; Viajo hacia el nodo izquierdo (6*SI + 4)
+	MOV SI, ES:[SI+2]
+	CALL imprimirDinamicoAscendente
+	POP SI ; Recupero valor anterior de SI
+	
+	MOV DX, PUERTO_SALIDA
+    MOV AX, ES:[SI] ; guardo en AX valor actual de arbol[index]
+    OUT DX, AX
+
+	PUSH SI ; Preservo valor de SI
+
+	; Viajo hacia el nodo izquierdo (2*SI + 2)
+	MOV SI, ES:[SI+4]
+	CALL imprimirDinamicoAscendente
+	POP SI ; Recupero valor anterior de SI
+
+endImprimirArbolDA:
+	RET
+imprimirDinamicoAscendente ENDP
+	
+
+
 .ports 	; Definición de puertos
-20: 1,0,3,1,1,3,1,0,2,4,3,1,1,2,5,3,1,0,2,100,2,128,2,60,2,40,2,20,2,22,3,1,1,2,50,2,40,2,30,2,45,2,46,2,47,2,48,3,255
+20: 1,0,5,1,1,1,5,1,1,0,2,4,5,1,1,1,2,5,5,1,1,0,2,100,2,128,2,60,2,40,2,20,2,22,5,1,5,0,1,1,2,50,2,40,2,30,2,45,2,46,2,47,2,48,5,0,5,1,255
 
 ; 200: 1,2,3  ; Ejemplo puerto simple
 ; 201:(100h,10),(200h,3),(?,4)  ; Ejemplo puerto PDDV

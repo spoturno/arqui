@@ -202,7 +202,7 @@ unsigned short alturaDinamico(unsigned short index) {
     if (index == NODO_VACIO) {
         return 0;
     }
-    
+
     if (3 * index >= AREA_MEMORIA) {
         return 0;
     }
@@ -265,6 +265,10 @@ void imprimirEstatico(unsigned short index, int orden) {
 }
 
 void imprimirDinamico(unsigned short index, int orden) {
+    if (index == NODO_VACIO) {
+        return;
+    }
+
     if (3 * index >= AREA_MEMORIA) {
         return;
     }
@@ -274,26 +278,14 @@ void imprimirDinamico(unsigned short index, int orden) {
     }
 
     if (orden == 0) {
-        if (arbol[3 * index + 1] != NODO_VACIO) {
-            imprimirDinamico(arbol[3 * index + 1], orden);
-        }
-
+        imprimirDinamico(arbol[3 * index + 1], orden);
         printf("%d ", arbol[3 * index]);
-
-        if (arbol[3 * index + 2] != NODO_VACIO) {
-            imprimirDinamico(arbol[3 * index + 2], orden);
-        }
+        imprimirDinamico(arbol[3 * index + 2], orden);
             
     } else {
-        if (arbol[3 * index + 2] != NODO_VACIO) {
-            imprimirDinamico(arbol[3 * index + 2], orden);
-        }
-
+        imprimirDinamico(arbol[3 * index + 2], orden);
         printf("%d ", arbol[3 * index]);
-
-        if (arbol[3 * index + 1] != NODO_VACIO) {
-            imprimirDinamico(arbol[3 * index + 1], orden);
-        }
+        imprimirDinamico(arbol[3 * index + 1], orden);
     }
 }
 
