@@ -152,6 +152,7 @@ calcularAlturaDinamico:
 	CALL alturaDinamico
 
 	MOV DX, PUERTO_SALIDA
+	MOV AX, DI
 	OUT DX, AX ; imprime la altura del arbol en el puerto salida
 
 	MOV DX, PUERTO_LOG
@@ -515,13 +516,53 @@ alturaEstatico ENDP
 
 
 alturaDinamico PROC
-  RET
+	
+	CMP SI, [NODO_VACIO]
+	JE retornoCeroDinamico
+
+	MOV AX, 6
+	MUL SI
+	MOV SI, AX
+
+	CMP SI, [AREA_MEMORIA]
+	JAE retornoCeroDinamico
+
+	MOV DX, ES:[SI]
+	
+	CMP DX, [NODO_VACIO]
+	JE retornoCeroDinamico
+
+	; Obtener altura de hijo izquierdo
+	PUSH SI 
+	MOV SI, ES:[SI+2]
+	CALL alturaDinamico
+	POP SI
+	PUSH DI
+	
+	; Obtener altura de hijo derecho
+	MOV SI, ES:[SI+4]
+	CALL alturaDinamico
+	POP BX
+
+	; Comprobar cual es la altura mayor y sumar
+	CMP DI, BX
+	JGE alturaIzqEsMayorOIgualDinamico
+	MOV DI, BX
+
+alturaIzqEsMayorOIgualDinamico:
+	INC DI
+	RET
+
+retornoCeroDinamico:
+	XOR DI, DI
+	RET	
+
 alturaDinamico ENDP
 
 
 
 .ports 	; Definición de puertos
-20: 1,0,2,50,2,40,2,30,2,45,2,46,2,47,2,48,3,255
+20: 1,0,3,1,1,3,1,0,2,4,3,1,1,2,5,3,1,0,2,100,2,128,2,60,2,40,2,20,2,22,3,1,1,2,50,2,40,2,30,2,45,2,46,2,47,2,48,3,255
 
 ; 200: 1,2,3  ; Ejemplo puerto simple
 ; 201:(100h,10),(200h,3),(?,4)  ; Ejemplo puerto PDDV
