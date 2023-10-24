@@ -290,6 +290,15 @@ imprimirMemoriaCase:
     MOV DX, PUERTO_LOG
     OUT DX, AX ; imprime el parametro en puerto log
 
+	CMP AX, 0
+	JL imprimirMemoriaParametroInvalido
+
+	CMP AX, [AREA_MEMORIA]
+	JG imprimirMemoriaParametroInvalido
+
+	CMP AX, [NODO_VACIO]
+	JE imprimirMemoriaParametroInvalido
+	
     ; Comprobamos el modo_actual y llamamos al procedimiento adecuado
 	MOV DX, [modo_actual]	
 
@@ -299,6 +308,10 @@ imprimirMemoriaCase:
     CMP DX, [MODO_DINAMICO]
     JE imprimirMemoriaDinamicoCase
 
+imprimirMemoriaParametroInvalido:
+	MOV AX, PARAMETRO_INVALIDO ; utilizo CX para guardar parametro
+    MOV DX, PUERTO_LOG
+    OUT DX, AX ; imprime el parametro en puerto log
     JMP endCase
 
 imprimirMemoriaEstaticoCase:
@@ -912,7 +925,7 @@ sumaDinamico ENDP
 
 
 .ports 	; Definición de puertos
-20: 1,0,2,100,2,200,2,50,2,30,2,150,4,1,1,2,102,2,202,2,52,2,32,2,152,4,255
+20: 1,2,1,-1,5,-1,5,4,6,-1,244,-5,255
 
 ; 200: 1,2,3  ; Ejemplo puerto simple
 ; 201:(100h,10),(200h,3),(?,4)  ; Ejemplo puerto PDDV
