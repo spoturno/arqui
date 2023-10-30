@@ -5,14 +5,6 @@ PUERTO_ENTRADA EQU 20
 PUERTO_SALIDA EQU 21
 PUERTO_LOG EQU 22
 
-OFFSET_MAXIMO DW 198 ; OFFSET_MAXIMO = (AREA_MEMORIA - 1) * 2
-AREA_MEMORIA DW 100
-NODO_VACIO DW 0x8000
-
-MODO_ESTATICO DW 0
-MODO_DINAMICO DW 1
-
-
 LECTURA_COMANDO EQU 64
 EXITO EQU 0 ; si la operación se pudo realizar con éxito 
 COMANDO_INVALIDO EQU 1 ; si no se reconoce el comando (comando inválido)
@@ -20,7 +12,13 @@ PARAMETRO_INVALIDO EQU 2 ; si el valor de algún parámetro recibido es inválid
 FUERA_DE_RANGO EQU 4 ; si al agregar un nodo se intenta escribir fuera del área de memoria
 NODO_YA_EXISTE EQU 8 ; si el nodo a agregar ya se encuentra en el árbol.
 
-suma_total DW 22
+OFFSET_MAXIMO DW 4094 ; OFFSET_MAXIMO = (AREA_MEMORIA - 1) * 2
+AREA_MEMORIA DW 2048
+NODO_VACIO DW 0x8000
+MODO_ESTATICO DW 0
+MODO_DINAMICO DW 1
+
+suma_total DW 0
 modo_actual DW 0
 index_siguiente DW 0
 comando DW ?
@@ -29,8 +27,6 @@ comando DW ?
 
 ; Inicialización del bucle
 loop_start: 
-
-	; Inicializacion de registros en 0
 	XOR SI, SI
 	
 	; Leer comando del PUERTO_ENTRADA
@@ -43,8 +39,6 @@ loop_start:
 
 	MOV AX, [comando]
 	OUT DX, AX ; imprime el comando en puerto log
-
-	; Comenzar a procesar el switch case
 
     CMP AX, 1
     JE cambiarModoCase
@@ -67,7 +61,6 @@ loop_start:
 	CMP AX, 255
 	JE stopCase
    
-    ; Caso predeterminado si no se cumple ninguna condición anterior
     JMP defaultCase
 
 cambiarModoCase:
@@ -607,7 +600,6 @@ imprimirMemEnd:
 	RET
 imprimirMemoria ENDP
 
-
 alturaEstatico PROC
 	CMP SI, [AREA_MEMORIA]
 	JAE retornoCeroEstatico
@@ -647,8 +639,6 @@ retornoCeroEstatico:
 	RET	
 
 alturaEstatico ENDP
-
-
 
 alturaDinamico PROC
 	
@@ -694,8 +684,6 @@ retornoCeroDinamico:
 
 alturaDinamico ENDP
 
-
-
 imprimirEstaticoAscendente PROC
 	CMP SI, [AREA_MEMORIA]
 	JAE endImprimirArbolEA
@@ -731,7 +719,6 @@ imprimirEstaticoAscendente PROC
 endImprimirArbolEA:
 	RET
 imprimirEstaticoAscendente ENDP
-
 
 imprimirEstaticoDescendente PROC
 	CMP SI, [AREA_MEMORIA]
@@ -807,8 +794,6 @@ endImprimirArbolDD:
 	RET
 imprimirDinamicoDescendente ENDP
 
-
-
 imprimirDinamicoAscendente PROC
 	CMP SI, [NODO_VACIO]
 	JE endImprimirArbolDA
@@ -846,7 +831,6 @@ endImprimirArbolDA:
 	RET
 imprimirDinamicoAscendente ENDP
 
-
 sumaEstatico PROC
 	CMP SI, [AREA_MEMORIA]
 	JAE retornoSumaCeroEstatico
@@ -880,7 +864,6 @@ sumaEstatico PROC
 
 retornoSumaCeroEstatico:
 	RET	
-
 sumaEstatico ENDP
 
 sumaDinamico PROC
@@ -919,13 +902,11 @@ sumaDinamico PROC
 
 retornoSumaCeroDinamico:
 	RET	
-
 sumaDinamico ENDP
 	
 
-
 .ports 	; Definición de puertos
-20: 1,2,1,-1,5,-1,5,4,6,-1,244,-5,255
+20: 1,0,2,15,2,35,2,5,3,4,5,0,255
 
 ; 200: 1,2,3  ; Ejemplo puerto simple
 ; 201:(100h,10),(200h,3),(?,4)  ; Ejemplo puerto PDDV
