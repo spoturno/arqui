@@ -12,7 +12,7 @@ PARAMETRO_INVALIDO EQU 2 ; si el valor de algún parámetro recibido es inválid
 FUERA_DE_RANGO EQU 4 ; si al agregar un nodo se intenta escribir fuera del área de memoria
 NODO_YA_EXISTE EQU 8 ; si el nodo a agregar ya se encuentra en el árbol.
 
-OFFSET_MAXIMO DW 4094 ; OFFSET_MAXIMO = (AREA_MEMORIA - 1) * 2
+OFFSET_MAXIMO DW 4094 ; OFFSET_MAXIMO = 2*AREA_MEMORIA - 2
 AREA_MEMORIA DW 2048
 NODO_VACIO DW 0x8000
 MODO_ESTATICO DW 0
@@ -299,6 +299,7 @@ imprimirMemoriaCase:
     JE imprimirMemoriaEstaticoCase
 
     CMP DX, [MODO_DINAMICO]
+
     JE imprimirMemoriaDinamicoCase
 
 imprimirMemoriaParametroInvalido:
@@ -376,17 +377,14 @@ insertarEstatico PROC ; CX es el valor del numero nuevo a insertar
 	XOR BX, BX ; BX sera nuestro comparador con AREA_MEMORIA
 
 insertarEstaticoLoop:
-    CMP BX, [AREA_MEMORIA] ; Comprobación de si el índice está fuera del rango de AREA_MEMORIA
-    JAE fueraDeRangoEstatico
-
+    CMP SI, [OFFSET_MAXIMO] ; Comprobación de si el índice está fuera del rango de AREA_MEMORIA
+    JA fueraDeRangoEstatico
     
     MOV DX, ES:[SI] ; Cargamos el valor actual en el árbol en DX
 
-    
     CMP DX, [NODO_VACIO] ; Si el nodo actual está vacío, insertamos el valor y salimos
     JE insertarAquiEstatico
 
-    
     CMP CX, DX ; Si el valor es menor que el actual, vamos al hijo izquierdo
     JL hijoIzquierdoEstatico
 
@@ -476,7 +474,7 @@ insertarDinamicoLoop:
 	MUL DX ; Multiplico AX por DX = 6
 	MOV BX, AX ; BX = 6 * index_siguiente
 	CMP BX, [OFFSET_MAXIMO] 
-    JAE fueraDeRangoDinamico
+    JA fueraDeRangoDinamico
 
     ; Cargo en DX el valor del padre ES[6*SI]
 	MOV AX, SI
@@ -574,13 +572,14 @@ imprimirMemoria PROC
 	PUSH AX
 	PUSH DX
 	
-	ADD CX, CX ; CX = 2 * N para saber hasta donde imprimir
-	SUB CX, 2 ; Ahora CX vale 2*N - 2 que es el index maximo
 	XOR SI, SI ; inicializo SI en 0 para direccionar
 	
 imprimirMemLoop:
-	CMP SI, CX
-	JE imprimirMemEnd
+	CMP CX, 0
+	JL imprimirMemEnd
+
+	CMP SI, CX ; compara index con 6N - 2 o 2N - 2
+	JA imprimirMemEnd
 	
     MOV DX, PUERTO_SALIDA
     MOV AX, ES:[SI] ; guardo en AX valor actual de arbol[index]
@@ -906,7 +905,7 @@ sumaDinamico ENDP
 	
 
 .ports 	; Definición de puertos
-20: 1,0,2,15,2,35,2,5,3,4,5,0,255
+20: 1,0,2,5,2,-4,2,-10,2,-80,2,60,6,0,6,1,6,10,1,1,2,5,2,-4,2,-10,2,-80,2,60,6,0,6,1,6,10,255
 
 ; 200: 1,2,3  ; Ejemplo puerto simple
 ; 201:(100h,10),(200h,3),(?,4)  ; Ejemplo puerto PDDV
