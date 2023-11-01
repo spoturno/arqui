@@ -67,7 +67,7 @@ int main() {
             case 2: // Agregar Nodo
                 parametro = in(PUERTO_ENTRADA);
                 out(PUERTO_LOG, parametro);
-                if (parametro  <= NODO_VACIO) {
+                if (parametro  == NODO_VACIO) {
                     out(PUERTO_LOG, 3); // Parámetro inválido
                     break;
                 }
@@ -87,6 +87,10 @@ int main() {
 
             case 5: // Imprimir Árbol
                 parametro = in(PUERTO_ENTRADA);
+                 if (parametro != 0 && parametro != 1) {
+                    out(PUERTO_LOG, 3); // Parámetro inválido
+                    break;
+                }
                 out(PUERTO_LOG, parametro);
                 imprimir(parametro);
                 out(PUERTO_LOG, 0);
@@ -94,6 +98,14 @@ int main() {
 
             case 6: // Imprimir Memoria
                 parametro = in(PUERTO_ENTRADA);
+                if (parametro < 0) {
+                    out(PUERTO_LOG, 3); // Parámetro inválido
+                    break;
+                }
+                if (parametro > AREA_MEMORIA) {
+                    out(PUERTO_LOG, 3); // Parámetro inválido
+                    break;
+                }
                 out(PUERTO_LOG, parametro);
                 imprimirMemoria(parametro);
                 out(PUERTO_LOG, 0);
