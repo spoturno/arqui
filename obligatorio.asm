@@ -96,6 +96,9 @@ insertarNodoCase:
     MOV DX, PUERTO_LOG
     OUT DX, AX ; imprime el parametro en puerto log
 
+	CMP CX, [NODO_VACIO]
+	JE insertarNodoParamInvalido
+
     ; Comprobamos el modo_actual y llamamos al procedimiento adecuado
 	MOV DX, [modo_actual]	
 
@@ -106,6 +109,12 @@ insertarNodoCase:
     JE insertarNodoDinamicoCase
 
     JMP endCase
+
+insertarNodoParamInvalido:
+	MOV AX, PARAMETRO_INVALIDO ; utilizo CX para guardar parametro
+    MOV DX, PUERTO_LOG
+    OUT DX, AX ; imprime el parametro en puerto log
+	JMP endCase
 
 insertarNodoEstaticoCase:
 	CALL insertarEstatico
@@ -905,7 +914,7 @@ sumaDinamico ENDP
 	
 
 .ports 	; Definición de puertos
-20: 1,0,2,5,2,-4,2,-10,2,-80,2,60,6,0,6,1,6,10,1,1,2,5,2,-4,2,-10,2,-80,2,60,6,0,6,1,6,10,255
+20: 1,0,2,-32768,2,-32766,255
 
 ; 200: 1,2,3  ; Ejemplo puerto simple
 ; 201:(100h,10),(200h,3),(?,4)  ; Ejemplo puerto PDDV
